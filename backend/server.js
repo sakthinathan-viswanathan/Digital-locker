@@ -21,15 +21,7 @@ const allowedOrigins = (process.env.CLIENT_ORIGIN || "http://localhost:5173")
   .map((o) => o.trim());
 
 app.use(
-  cors({
-    origin: (origin, callback) => {
-      if (!origin || allowedOrigins.includes(origin)) {
-        return callback(null, true);
-      }
-      callback(new Error("Not allowed by CORS"));
-    },
-    credentials: true,
-  })
+  cors()
 );
 
 app.get("/api/health", (req, res) => {
