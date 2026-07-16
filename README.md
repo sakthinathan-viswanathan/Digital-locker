@@ -1,344 +1,155 @@
-<<<<<<< HEAD
-📁 Digital Locker
-A secure cloud-based file storage system that combines Firebase Firestore for metadata management with Supabase Storage for efficient file handling.
+# Vaultly — Digital Locker
 
-🚀 Features
-🔐 Secure Authentication - JWT-based authentication with Firebase
+## Tech Stack
 
-📂 Folder Management - Create, organize, and manage folders
+### Frontend — `digital-locker/frontend`
 
-📄 File Management - Upload, download, and delete files
+| Package | Version | Purpose |
+|---|---|---|
+| react | ^18.3.1 | UI library |
+| react-dom | ^18.3.1 | DOM renderer |
+| react-router-dom | ^6.26.2 | client-side routing |
+| axios | ^1.7.7 | HTTP client |
+| lucide-react | ^0.441.0 | icon set |
+| vite *(dev)* | ^5.4.6 | build tool / dev server |
+| @vitejs/plugin-react *(dev)* | ^4.3.1 | React fast-refresh for Vite |
+| tailwindcss *(dev)* | ^3.4.10 | utility-first CSS |
+| postcss *(dev)* | ^8.4.45 | CSS transforms |
+| autoprefixer *(dev)* | ^10.4.20 | vendor prefixing |
 
-💾 Hybrid Storage - Metadata in Firestore, files in Supabase Storage
+### Backend — `digital-locker/backend`
 
-🖼️ Image Transformation - On-the-fly image optimization and resizing
+| Package | Version | Purpose |
+|---|---|---|
+| express | ^4.19.2 | web framework |
+| firebase-admin | ^12.6.0 | Firestore access (users/folders/metadata) |
+| @supabase/supabase-js | ^2.45.4 | Supabase Storage (file bytes) |
+| jsonwebtoken | ^9.0.2 | JWT auth (7-day tokens) |
+| bcryptjs | ^2.4.3 | password hashing |
+| cors | ^2.8.5 | cross-origin requests |
+| dotenv | ^16.4.5 | env var loading |
+| nodemon *(dev)* | ^3.1.4 | dev auto-reload |
 
-📊 File Size Limits - Configurable upload limits (50MB Free / 500GB Pro)
+Node engine: `>=18.0.0`
 
-🔄 Real-time Updates - Instant synchronization across devices
+### Data layer
 
-🔒 Private Buckets - Secure file storage with signed URLs
+- **Firestore** — users, folders, file metadata (via Firebase Admin SDK)
+- **Supabase Storage** — actual file bytes, private bucket, service-role key
 
-🏗️ Architecture
-text
-┌─────────────────────────────────────────────────────────────┐
-│                      Digital Locker                         │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│  ┌─────────────┐  ┌─────────────┐  ┌─────────────────┐    │
-│  │  Frontend   │  │   Backend   │  │  Database/      │    │
-│  │  (React)    │──│  (Node.js)  │──│  Storage Layer  │    │
-│  └─────────────┘  └─────────────┘  └─────────────────┘    │
-│                         │                    │              │
-│                         ▼                    ▼              │
-│                  ┌─────────────┐  ┌─────────────────┐    │
-│                  │  Firebase   │  │    Supabase     │    │
-│                  │  Firestore  │  │    Storage      │    │
-│                  │             │  │                 │    │
-│                  │ • Users     │  │ • File bytes    │    │
-│                  │ • Folders   │  │ • Private       │    │
-│                  │ • Metadata  │  │   buckets       │    │
-│                  └─────────────┘  └─────────────────┘    │
-│                                                             │
-└─────────────────────────────────────────────────────────────┘
-🛠️ Tech Stack
-Backend
-Node.js - Runtime environment
+### Deployment
 
-Express.js - Web framework
+- **Vercel** — frontend hosting
+- **Render** — backend hosting
 
-Firebase Admin SDK - Firestore database operations
+---
 
-Supabase JavaScript SDK - File storage operations
+## Project Initialization
 
-JWT - Authentication & authorization
+### 0. Clone / extract
 
-Multer - File upload handling
+```bash
+git clone https://github.com/<you>/vaultly-digital-locker.git
+cd vaultly-digital-locker/digital-locker
+```
 
-Storage & Database
-Firebase Firestore - User data, folders, file metadata
+### 1. Firestore project setup *(one-time, via Firebase console)*
 
-Supabase Storage - File bytes storage (private buckets)
+1. Firebase console → **Build → Firestore Database → Create database**
+2. Select **production mode** (locked down) + region
+3. **Project settings → Service accounts → Generate new private key**
+   ↳ downloads JSON with `project_id` / `client_email` / `private_key`
 
-Security
-JWT Authentication - Secure token-based auth
+### 2. Supabase Storage setup *(one-time, via supabase.com)*
 
-Firebase Auth - User management
+1. Create project at [supabase.com](https://supabase.com)
+2. **Storage → New bucket** → name it `locker-files`, keep **PRIVATE**
+3. **Settings → API** → copy Project URL + `service_role` key
 
-Row Level Security (RLS) - Supabase policies
+### 3. Backend init
 
-CORS - Secure cross-origin requests
-
-Environment Variables - Sensitive config protection
-
-📋 Prerequisites
-Node.js (v16+)
-
-npm or yarn
-
-Firebase Account (Free tier)
-
-Supabase Account (Free tier)
-
-🚀 Getting Started
-1. Clone the Repository
-bash
-git clone https://github.com/yourusername/digital-locker.git
-cd digital-locker
-2. Install Dependencies
-bash
-# Backend
+```bash
 cd backend
 npm install
+cp .env.example .env
+```
 
-# Frontend (if applicable)
+Fill in `.env`:
+
+```env
+PORT=5000
+JWT_SECRET=<generate a long random string>
+FIREBASE_PROJECT_ID=<from service account JSON>
+FIREBASE_CLIENT_EMAIL=<from service account JSON>
+FIREBASE_PRIVATE_KEY="<from service account JSON, keep \n literal>"
+SUPABASE_URL=<from Supabase Settings → API>
+SUPABASE_SERVICE_ROLE_KEY=<from Supabase Settings → API>
+SUPABASE_BUCKET=locker-files
+CLIENT_ORIGIN=http://localhost:5173
+MAX_UPLOAD_MB=15
+```
+
+```bash
+npm run dev
+```
+
+Expected output:
+
+```
+[nodemon] starting `node server.js`
+✅ Firestore connected
+✅ Supabase Storage connected
+🚀 Server listening on http://localhost:5000
+```
+
+### 4. Frontend init
+
+```bash
 cd ../frontend
 npm install
-3. Configure Environment Variables
-Create a .env file in the backend directory:
-
-env
-# Server
-PORT=5000
-NODE_ENV=development
-
-# JWT
-JWT_SECRET=your_jwt_secret_here
-JWT_EXPIRES_IN=7d
-
-# Firebase Firestore
-FIREBASE_PROJECT_ID=your_project_id
-FIREBASE_CLIENT_EMAIL=your_client_email
-FIREBASE_PRIVATE_KEY="your_private_key_with_escaped_newlines"
-
-# Supabase Storage
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
-SUPABASE_BUCKET=locker-files
-
-# Client Origins
-CLIENT_ORIGIN=http://localhost:5173,https://your-app.vercel.app
-
-# Upload Limits
-MAX_UPLOAD_MB=15
-4. Set Up Firebase Firestore
-Go to Firebase Console
-
-Create a new project or use existing
-
-Navigate to Project Settings → Service Accounts
-
-Click "Generate new private key"
-
-Download the JSON file
-
-Copy the project_id, client_email, and private_key to your .env
-
-5. Set Up Supabase Storage
-Create a Supabase account
-
-Create a new project
-
-Go to Settings → API and copy:
-
-Project URL
-
-Service role key (secret key)
-
-Go to Storage → Create bucket:
-
-Name: locker-files
-
-Keep it private
-
-Add the values to your .env
-
-6. Run the Application
-bash
-# Backend
-cd backend
+cp .env.example .env
+echo "VITE_API_URL=http://localhost:5000/api" > .env
 npm run dev
+```
 
-# Server will start on http://localhost:5000
-7. Verify Setup
-You should see:
+Expected output:
 
-text
-✅ Firestore reachable
-✅ Supabase Storage bucket reachable: locker-files
-Server running on port 5000
-📁 Project Structure
-text
-digital-locker/
-├── backend/
-│   ├── config/
-│   │   ├── firebase.js      # Firebase Firestore config
-│   │   ├── supabase.js      # Supabase Storage config
-│   │   └── multer.js        # File upload config
-│   ├── middleware/
-│   │   ├── auth.js          # JWT authentication
-│   │   └── upload.js        # File upload handler
-│   ├── routes/
-│   │   ├── auth.js          # Authentication routes
-│   │   ├── files.js         # File operations
-│   │   └── folders.js       # Folder operations
-│   ├── controllers/
-│   │   ├── authController.js
-│   │   ├── fileController.js
-│   │   └── folderController.js
-│   ├── models/
-│   │   ├── User.js
-│   │   ├── File.js
-│   │   └── Folder.js
-│   ├── utils/
-│   │   ├── validators.js
-│   │   └── helpers.js
-│   ├── .env                  # Environment variables
-│   ├── server.js             # Entry point
-│   └── package.json
-├── frontend/                 # Frontend code (React)
-│   ├── src/
-│   └── package.json
-├── .gitignore
-├── README.md
-└── LICENSE
-🔒 Security Features
-JWT Tokens - Stateless authentication
+```
+  VITE v5.4.6  ready in 320 ms
 
-CORS Protection - Only allow trusted origins
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+```
 
-Input Validation - Sanitize all user inputs
+### 5. Verify
 
-File Type Validation - Restrict allowed file types
+```bash
+curl http://localhost:5000/api/health
+# {"status":"ok"}
 
-Size Limits - Prevent oversized uploads
+open http://localhost:5173
+# register an account, upload a file, done.
+```
 
-Private Storage - Files accessible only via signed URLs
+---
 
-Environment Variables - Sensitive data never exposed
+## Production Build *(optional, before deploy)*
 
-📡 API Endpoints
-Authentication
-text
-POST   /api/auth/register     - Register new user
-POST   /api/auth/login        - Login user
-POST   /api/auth/logout       - Logout user
-GET    /api/auth/verify       - Verify token
-Folders
-text
-POST   /api/folders           - Create folder
-GET    /api/folders           - Get all folders
-GET    /api/folders/:id       - Get folder by ID
-PUT    /api/folders/:id       - Update folder
-DELETE /api/folders/:id       - Delete folder
-Files
-text
-POST   /api/files/upload      - Upload file
-GET    /api/files             - Get all files
-GET    /api/files/:id         - Get file by ID
-GET    /api/files/:id/download - Download file
-DELETE /api/files/:id         - Delete file
-PUT    /api/files/:id/rename  - Rename file
-🎯 Key Features Explained
-Hybrid Storage Strategy
-Firestore: Stores user data, folder structure, file metadata
+```bash
+cd frontend
+npm run build
+# vite v5.4.6 building for production...
+# ✓ built in 2.1s → dist/
 
-Supabase: Stores actual file bytes in private buckets
+npm run preview   # sanity-check the build locally
+```
 
-Benefits: Cost-effective, scalable, better performance
+## Deploy
 
-File Upload Flow
-User selects file
+- **Render** → New Web Service → root: `backend` → build: `npm install` → start: `npm start`
+- **Vercel** → Add New Project → root: `frontend` → framework: Vite
 
-Backend validates file (type, size)
-
-File uploaded to Supabase Storage
-
-Metadata saved to Firestore
-
-User receives file URL and metadata
-
-Image Optimization
-On-the-fly image transformation
-
-Resize, compress, convert formats
-
-Saves bandwidth and load times
-
-🐛 Troubleshooting
-Port Already in Use
-bash
-# Windows
-netstat -ano | findstr :5000
-taskkill /PID <PID> /F
-
-# Linux/Mac
-lsof -i :5000
-kill -9 <PID>
-Missing Dependencies
-bash
-npm install --legacy-peer-deps
-Supabase Connection Issues
-Verify bucket exists: locker-files
-
-Check service role key (not anon key)
-
-Ensure CORS settings are configured
-
-Firestore Connection Issues
-Verify service account has proper permissions
-
-Check private key format (keep \n as literal)
-
-Ensure project ID is correct
-
-🚧 Roadmap
-File sharing with public links
-
-File versioning
-
-Bulk upload/download
-
-File preview (PDF, images, videos)
-
-Search functionality
-
-File encryption
-
-Mobile app support
-
-Team collaboration features
-
-🤝 Contributing
-Fork the repository
-
-Create your feature branch (git checkout -b feature/AmazingFeature)
-
-Commit your changes (git commit -m 'Add some AmazingFeature')
-
-Push to the branch (git push origin feature/AmazingFeature)
-
-Open a Pull Request
-
-📝 License
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-🙏 Acknowledgments
-Firebase - Firestore database
-
-Supabase - Storage solution
-
-Node.js - Backend runtime
-
-Express.js - Web framework
-
-JWT - Authentication
-
-📧 Contact
-Your Name - @sakthinathan
-
-Project Link: https://github.com/sakthinathan-viswanathan/digital-locker
-=======
-# Digital-locker
-A secure cloud-based file storage system that combines Firebase Firebase for metadata management with Supabase Storage for efficient file handling.
->>>>>>> 3806f63c235d298640fd4ebd3711dcdeb5b0b6d5
+```bash
+curl https://<your-service>.onrender.com/api/health
+# {"status":"ok"}
+```
