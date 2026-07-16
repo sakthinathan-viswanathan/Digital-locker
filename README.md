@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 📁 Digital Locker
 A secure cloud-based file storage system that combines Firebase Firestore for metadata management with Supabase Storage for efficient file handling.
 
@@ -337,3 +338,7 @@ JWT - Authentication
 Your Name - @sakthinathan
 
 Project Link: https://github.com/sakthinathan-viswanathan/digital-locker
+=======
+# Digital-locker
+A secure cloud-based file storage system that combines Firebase Firebase for metadata management with Supabase Storage for efficient file handling.
+>>>>>>> 3806f63c235d298640fd4ebd3711dcdeb5b0b6d5
