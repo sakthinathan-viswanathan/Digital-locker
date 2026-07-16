@@ -49,7 +49,7 @@ async function uploadFile(req, res) {
 
     // Bytes live in Supabase Storage; Firestore only holds the metadata +
     // a pointer (storagePath) to the object.
-    const storagePath = `users/${req.user.id}/${crypto.randomUUID()}-${name}`;
+    const storagePath = `users/${req.user.id+req.user.name}/${crypto.randomUUID()}-${name}`;
     const { error: uploadError } = await supabase.storage.from(BUCKET).upload(storagePath, buffer, {
       contentType: mimeType,
       upsert: false,
