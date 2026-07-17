@@ -11,6 +11,7 @@ import {
   FolderInput,
   Eye,
   Pencil,
+  Share2,
 } from "lucide-react";
 import { formatBytes, formatDate, buildFolderOptions } from "../utils/format";
 
@@ -26,7 +27,7 @@ function iconFor(mimeType) {
   return { Icon: FileIcon, color: "text-slate-600 bg-slate-100" };
 }
 
-export default function FileCard({ file, folders, onView, onDownload, onDelete, onMove, onRename }) {
+export default function FileCard({ file, folders, onView, onDownload, onDelete, onMove, onRename, onShare }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [renaming, setRenaming] = useState(false);
@@ -112,6 +113,15 @@ export default function FileCard({ file, folders, onView, onDownload, onDelete, 
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 text-ink"
               >
                 <Download size={14} /> Download
+              </button>
+              <button
+                onClick={() => {
+                  onShare(file);
+                  setMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 text-ink"
+              >
+                <Share2 size={14} /> Share via link
               </button>
               <button
                 onClick={startRename}

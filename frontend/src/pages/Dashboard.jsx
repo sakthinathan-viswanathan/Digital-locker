@@ -6,6 +6,7 @@ import FileCard from "../components/FileCard";
 import UploadModal from "../components/UploadModal";
 import NewFolderModal from "../components/NewFolderModal";
 import FilePreviewModal from "../components/FilePreviewModal";
+import ShareModal from "../components/ShareModal";
 import VaultDial from "../components/VaultDial";
 import { Inbox } from "lucide-react";
 import { buildBreadcrumb } from "../utils/format";
@@ -20,6 +21,7 @@ export default function Dashboard() {
   const [newFolderParentId, setNewFolderParentId] = useState(undefined); // undefined = closed
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [previewFile, setPreviewFile] = useState(null);
+  const [shareFile, setShareFile] = useState(null);
 
   const loadFolders = useCallback(async () => {
     const { data } = await api.get("/folders");
@@ -206,6 +208,7 @@ export default function Dashboard() {
                   onDelete={handleDelete}
                   onMove={handleMove}
                   onRename={handleRenameFile}
+                  onShare={setShareFile}
                 />
               ))}
             </div>
@@ -241,6 +244,8 @@ export default function Dashboard() {
           onFetchBlob={fetchFileBlob}
         />
       )}
+
+      {shareFile && <ShareModal file={shareFile} onClose={() => setShareFile(null)} />}
     </div>
   );
 }

@@ -5,6 +5,7 @@ import Register from "./pages/Register";
 import ForgotPassword from "./pages/ForgotPassword";
 import ResetPassword from "./pages/ResetPassword";
 import Dashboard from "./pages/Dashboard";
+import SharedFile from "./pages/SharedFile";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 export default function App() {
@@ -14,6 +15,7 @@ export default function App() {
       <Route path="/register" element={<Register />} />
       <Route path="/forgot-password" element={<ForgotPassword />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/share/:token" element={<SharedFile />} />
       <Route
         path="/dashboard"
         element={

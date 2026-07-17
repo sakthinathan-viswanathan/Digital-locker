@@ -7,6 +7,7 @@ const { testConnection: testSupabase } = require("./config/supabase");
 const authRoutes = require("./routes/auth.routes");
 const folderRoutes = require("./routes/folder.routes");
 const fileRoutes = require("./routes/file.routes");
+const shareRoutes = require("./routes/share.routes");
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/folders", folderRoutes);
 app.use("/api/files", fileRoutes);
+app.use("/api/public/share", shareRoutes);
 
 // 404 handler
 app.use((req, res) => {

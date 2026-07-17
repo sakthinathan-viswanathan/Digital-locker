@@ -208,4 +208,85 @@ async function renameFile(req, res) {
   }
 }
 
-module.exports = { uploadFile, listFiles, downloadFile, deleteFile, moveFile, renameFile };
+// Public share links: a file that has shareEnabled=true can be fetched by
+// anyone holding shareToken, via the unauthenticated routes in
+// routes/share.routes.js — no login required on the receiving end.
+function buildShareUrl(token) {
+  const base = (process.env.CLIENT_ORIGIN || "http://localhost:5173").split(",")[0].trim();
+  return `${base}/share/${token}`;
+}
+
+async function createShareLink(req, res) {
+  try {
+    const { id } = req.params;
+    const ref = filesCol.doc(id);
+    const snap = await ref.get();
+    if (!snap.exists || snap.data().userId !== req.user.id) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    // Reuse the existing token if this file was shared before (so an old
+    // link that was only turned off, not revoked, keeps working when
+    // re-enabled) — otherwise mint a fresh one.
+    const existingToken = snap.data().shareToken;
+    const token = existingToken || crypto.randomBytes(16).toString("hex");
+
+    await ref.update({ shareToken: token, shareEnabled: true });
+    res.json({ shareEnabled: true, shareUrl: buildShareUrl(token) });
+  } catch (err) {
+    console.error("createShareLink error:", err);
+    res.status(500).json({ message: "Could not create share link", detail: err.message });
+  }
+}
+
+async function getShareStatus(req, res) {
+  try {
+    const { id } = req.params;
+    const snap = await filesCol.doc(id).get();
+    if (!snap.exists || snap.data().userId !== req.user.id) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    const data = snap.data();
+    const shareEnabled = !!data.shareEnabled;
+    res.json({
+      shareEnabled,
+      shareUrl: shareEnabled && data.shareToken ? buildShareUrl(data.shareToken) : null,
+    });
+  } catch (err) {
+    console.error("getShareStatus error:", err);
+    res.status(500).json({ message: "Could not load share status", detail: err.message });
+  }
+}
+
+async function revokeShareLink(req, res) {
+  try {
+    const { id } = req.params;
+    const ref = filesCol.doc(id);
+    const snap = await ref.get();
+    if (!snap.exists || snap.data().userId !== req.user.id) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    // Just flip the flag off rather than deleting the token, so a fresh
+    // "create" for the same file can hand back the same link if the owner
+    // changes their mind.
+    await ref.update({ shareEnabled: false });
+    res.json({ message: "Link sharing turned off", shareEnabled: false });
+  } catch (err) {
+    console.error("revokeShareLink error:", err);
+    res.status(500).json({ message: "Could not revoke share link", detail: err.message });
+  }
+}
+
+module.exports = {
+  uploadFile,
+  listFiles,
+  downloadFile,
+  deleteFile,
+  moveFile,
+  renameFile,
+  createShareLink,
+  getShareStatus,
+  revokeShareLink,
+};
