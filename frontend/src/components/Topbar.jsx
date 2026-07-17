@@ -1,5 +1,5 @@
 import React from "react";
-import { Search, Upload, Menu } from "lucide-react";
+import { Search, Upload, Menu, Github } from "lucide-react";
 
 export default function Topbar({ search, onSearchChange, onUploadClick, onMenuClick, folderName }) {
   return (
@@ -24,6 +24,17 @@ export default function Topbar({ search, onSearchChange, onUploadClick, onMenuCl
             onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
+
+        <a
+          href="https://github.com/sakthinathan-viswanathan/Digital-locker"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="btn-ghost"
+          title="View source on GitHub"
+        >
+          <Github size={16} />
+          <span className="hidden sm:inline">GitHub</span>
+        </a>
 
         <button onClick={onUploadClick} className="btn-brass">
           <Upload size={16} />
