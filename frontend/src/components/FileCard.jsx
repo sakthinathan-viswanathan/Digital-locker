@@ -9,8 +9,10 @@ import {
   Download,
   Trash2,
   FolderInput,
+  Eye,
+  Pencil,
 } from "lucide-react";
-import { formatBytes, formatDate } from "../utils/format";
+import { formatBytes, formatDate, buildFolderOptions } from "../utils/format";
 
 function iconFor(mimeType) {
   if (mimeType.startsWith("image/")) return { Icon: ImageIcon, color: "text-emerald-600 bg-emerald-50" };
@@ -24,11 +26,17 @@ function iconFor(mimeType) {
   return { Icon: FileIcon, color: "text-slate-600 bg-slate-100" };
 }
 
-export default function FileCard({ file, folders, onDownload, onDelete, onMove }) {
+export default function FileCard({ file, folders, onView, onDownload, onDelete, onMove, onRename }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
+  const [renaming, setRenaming] = useState(false);
+  const [renameValue, setRenameValue] = useState(file.original_name);
+  const [renameError, setRenameError] = useState("");
+  const [savingRename, setSavingRename] = useState(false);
   const menuRef = useRef(null);
+  const renameInputRef = useRef(null);
   const { Icon, color } = iconFor(file.mime_type);
+  const folderOptions = buildFolderOptions(folders);
 
   useEffect(() => {
     function handleClickOutside(e) {
@@ -41,8 +49,37 @@ export default function FileCard({ file, folders, onDownload, onDelete, onMove }
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (renaming) renameInputRef.current?.select();
+  }, [renaming]);
+
+  function startRename() {
+    setRenameValue(file.original_name);
+    setRenameError("");
+    setRenaming(true);
+    setMenuOpen(false);
+  }
+
+  async function submitRename() {
+    const trimmed = renameValue.trim();
+    if (!trimmed || trimmed === file.original_name) {
+      setRenaming(false);
+      return;
+    }
+    setSavingRename(true);
+    setRenameError("");
+    try {
+      await onRename(file, trimmed);
+      setRenaming(false);
+    } catch (err) {
+      setRenameError(err.response?.data?.message || "Could not rename file");
+    } finally {
+      setSavingRename(false);
+    }
+  }
+
   return (
-    <div className="card p-4 flex flex-col gap-3 hover:shadow-panel transition-shadow relative">
+    <div className="card p-4 flex flex-col gap-3 hover:shadow-panel transition-shadow relative group">
       <div className="flex items-start justify-between">
         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${color}`}>
           <Icon size={18} />
@@ -60,12 +97,27 @@ export default function FileCard({ file, folders, onDownload, onDelete, onMove }
             <div className="absolute right-0 top-8 w-44 bg-white border border-slate-100 rounded-lg shadow-panel py-1 z-10 text-sm">
               <button
                 onClick={() => {
+                  onView(file);
+                  setMenuOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 text-ink"
+              >
+                <Eye size={14} /> View
+              </button>
+              <button
+                onClick={() => {
                   onDownload(file);
                   setMenuOpen(false);
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 text-ink"
               >
                 <Download size={14} /> Download
+              </button>
+              <button
+                onClick={startRename}
+                className="w-full flex items-center gap-2 px-3 py-2 hover:bg-slate-50 text-ink"
+              >
+                <Pencil size={14} /> Rename
               </button>
               <button
                 onClick={() => setMoveOpen((o) => !o)}
@@ -85,7 +137,7 @@ export default function FileCard({ file, folders, onDownload, onDelete, onMove }
                   >
                     No folder
                   </button>
-                  {folders.map((f) => (
+                  {folderOptions.map((f) => (
                     <button
                       key={f.id}
                       onClick={() => {
@@ -95,6 +147,8 @@ export default function FileCard({ file, folders, onDownload, onDelete, onMove }
                       }}
                       className="w-full text-left px-3 py-1.5 text-xs text-ink hover:bg-slate-50"
                     >
+                      {"\u2007\u2007".repeat(f.depth)}
+                      {f.depth > 0 ? "↳ " : ""}
                       {f.name}
                     </button>
                   ))}
@@ -114,14 +168,35 @@ export default function FileCard({ file, folders, onDownload, onDelete, onMove }
         </div>
       </div>
 
-      <div className="min-w-0">
-        <p className="text-sm font-medium text-ink truncate" title={file.original_name}>
-          {file.original_name}
-        </p>
-        <p className="text-xs text-muted font-mono mt-0.5">
-          {formatBytes(file.size_bytes)} · {formatDate(file.created_at)}
-        </p>
-      </div>
+      {renaming ? (
+        <div className="min-w-0">
+          <input
+            ref={renameInputRef}
+            className="input py-1.5 text-sm"
+            value={renameValue}
+            disabled={savingRename}
+            onChange={(e) => setRenameValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") submitRename();
+              if (e.key === "Escape") setRenaming(false);
+            }}
+            onBlur={submitRename}
+          />
+          {renameError && <p className="text-xs text-red-600 mt-1">{renameError}</p>}
+          <p className="text-xs text-muted font-mono mt-1">
+            {formatBytes(file.size_bytes)} · {formatDate(file.created_at)}
+          </p>
+        </div>
+      ) : (
+        <button onClick={() => onView(file)} className="min-w-0 text-left">
+          <p className="text-sm font-medium text-ink truncate group-hover:text-brass-dark" title={file.original_name}>
+            {file.original_name}
+          </p>
+          <p className="text-xs text-muted font-mono mt-0.5">
+            {formatBytes(file.size_bytes)} · {formatDate(file.created_at)}
+          </p>
+        </button>
+      )}
     </div>
   );
 }

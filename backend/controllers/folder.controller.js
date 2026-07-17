@@ -74,10 +74,7 @@ async function createFolder(req, res) {
 async function renameFolder(req, res) {
   try {
     const { id } = req.params;
-    const { name } = req.body;
-    if (!name || !name.trim()) {
-      return res.status(400).json({ message: "Folder name is required" });
-    }
+    const { name, parent_id } = req.body;
 
     const ref = foldersCol.doc(id);
     const snap = await ref.get();
@@ -85,11 +82,50 @@ async function renameFolder(req, res) {
       return res.status(404).json({ message: "Folder not found" });
     }
 
-    await ref.update({ name: name.trim() });
-    res.json({ message: "Folder renamed" });
+    const updates = {};
+
+    if (name !== undefined) {
+      if (!name.trim()) {
+        return res.status(400).json({ message: "Folder name is required" });
+      }
+      updates.name = name.trim();
+    }
+
+    if (parent_id !== undefined) {
+      if (parent_id === id) {
+        return res.status(400).json({ message: "A folder cannot be moved into itself" });
+      }
+      if (parent_id) {
+        const parentSnap = await foldersCol.doc(parent_id).get();
+        if (!parentSnap.exists || parentSnap.data().userId !== req.user.id) {
+          return res.status(400).json({ message: "Target folder does not exist" });
+        }
+        // Basic cycle guard: walk up the target's ancestor chain and make
+        // sure the folder being moved doesn't appear in it.
+        let cursor = parentSnap.data();
+        let guard = 0;
+        while (cursor.parentId && guard < 50) {
+          if (cursor.parentId === id) {
+            return res.status(400).json({ message: "Cannot move a folder into its own subfolder" });
+          }
+          const nextSnap = await foldersCol.doc(cursor.parentId).get();
+          if (!nextSnap.exists) break;
+          cursor = nextSnap.data();
+          guard += 1;
+        }
+      }
+      updates.parentId = parent_id || null;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return res.status(400).json({ message: "Nothing to update" });
+    }
+
+    await ref.update(updates);
+    res.json({ message: "Folder updated" });
   } catch (err) {
     console.error("renameFolder error:", err);
-    res.status(500).json({ message: "Could not rename folder", detail: err.message });
+    res.status(500).json({ message: "Could not update folder", detail: err.message });
   }
 }
 
@@ -102,15 +138,16 @@ async function deleteFolder(req, res) {
       return res.status(404).json({ message: "Folder not found" });
     }
 
-    // Mirror ON DELETE SET NULL: any files inside this folder become unfiled
-    // rather than being deleted along with it.
-    const fileSnap = await filesCol
-      .where("userId", "==", req.user.id)
-      .where("folderId", "==", id)
-      .get();
+    // Mirror ON DELETE SET NULL: any files inside this folder become unfiled,
+    // and any subfolders move up to root, rather than disappearing along with it.
+    const [fileSnap, subfolderSnap] = await Promise.all([
+      filesCol.where("userId", "==", req.user.id).where("folderId", "==", id).get(),
+      foldersCol.where("userId", "==", req.user.id).where("parentId", "==", id).get(),
+    ]);
 
     const batch = db.batch();
     fileSnap.forEach((doc) => batch.update(doc.ref, { folderId: null }));
+    subfolderSnap.forEach((doc) => batch.update(doc.ref, { parentId: null }));
     batch.delete(ref);
     await batch.commit();
 

@@ -186,4 +186,26 @@ async function moveFile(req, res) {
   }
 }
 
-module.exports = { uploadFile, listFiles, downloadFile, deleteFile, moveFile };
+async function renameFile(req, res) {
+  try {
+    const { id } = req.params;
+    const { name } = req.body;
+    if (!name || !name.trim()) {
+      return res.status(400).json({ message: "File name is required" });
+    }
+
+    const ref = filesCol.doc(id);
+    const snap = await ref.get();
+    if (!snap.exists || snap.data().userId !== req.user.id) {
+      return res.status(404).json({ message: "File not found" });
+    }
+
+    await ref.update({ originalName: name.trim() });
+    res.json({ message: "File renamed", file: toFileResponse(id, { ...snap.data(), originalName: name.trim() }) });
+  } catch (err) {
+    console.error("renameFile error:", err);
+    res.status(500).json({ message: "Could not rename file", detail: err.message });
+  }
+}
+
+module.exports = { uploadFile, listFiles, downloadFile, deleteFile, moveFile, renameFile };

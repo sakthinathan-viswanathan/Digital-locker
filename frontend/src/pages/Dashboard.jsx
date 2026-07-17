@@ -5,8 +5,10 @@ import Topbar from "../components/Topbar";
 import FileCard from "../components/FileCard";
 import UploadModal from "../components/UploadModal";
 import NewFolderModal from "../components/NewFolderModal";
+import FilePreviewModal from "../components/FilePreviewModal";
 import VaultDial from "../components/VaultDial";
 import { Inbox } from "lucide-react";
+import { buildBreadcrumb } from "../utils/format";
 
 export default function Dashboard() {
   const [folders, setFolders] = useState([]);
@@ -15,8 +17,9 @@ export default function Dashboard() {
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [uploadOpen, setUploadOpen] = useState(false);
-  const [newFolderOpen, setNewFolderOpen] = useState(false);
+  const [newFolderParentId, setNewFolderParentId] = useState(undefined); // undefined = closed
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [previewFile, setPreviewFile] = useState(null);
 
   const loadFolders = useCallback(async () => {
     const { data } = await api.get("/folders");
@@ -45,19 +48,33 @@ export default function Dashboard() {
     return () => clearTimeout(timeout);
   }, [loadFiles, search]);
 
-  async function handleUpload(payload) {
-    await api.post("/files", payload);
+  // Raw single-file upload — no refresh side effects, since UploadModal may
+  // call this many times in a row for a multi-file / folder upload.
+  async function uploadOne(payload) {
+    const { data } = await api.post("/files", payload);
+    return data.file;
+  }
+
+  async function refreshAfterUpload() {
     await Promise.all([loadFiles(), loadFolders()]);
   }
 
   async function handleCreateFolder(payload) {
-    await api.post("/folders", payload);
+    const { data } = await api.post("/folders", payload);
     await loadFolders();
+    return data.folder;
+  }
+
+  async function fetchFileBlob(file) {
+    const res = await api.get(`/files/${file.id}/download`, { responseType: "blob" });
+    // The raw response blob has no reliable type; re-wrap it with the known
+    // mime type so <img>/<iframe>/<video> render it instead of downloading it.
+    return new Blob([res.data], { type: file.mime_type || res.data.type });
   }
 
   async function handleDownload(file) {
-    const res = await api.get(`/files/${file.id}/download`, { responseType: "blob" });
-    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const blob = await fetchFileBlob(file);
+    const url = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = url;
     link.setAttribute("download", file.original_name);
@@ -78,12 +95,30 @@ export default function Dashboard() {
     await Promise.all([loadFiles(), loadFolders()]);
   }
 
+  async function handleRenameFile(file, newName) {
+    await api.patch(`/files/${file.id}/rename`, { name: newName });
+    await loadFiles();
+  }
+
+  async function handleRenameFolder(folderId, newName) {
+    await api.put(`/folders/${folderId}`, { name: newName });
+    await loadFolders();
+  }
+
   const totalFiles = useMemo(() => folders.reduce((sum, f) => sum + f.file_count, 0), [folders]);
+
+  const breadcrumb = useMemo(() => buildBreadcrumb(folders, activeFolderId), [folders, activeFolderId]);
+
   const folderName = useMemo(() => {
     if (search.trim()) return `Results for "${search.trim()}"`;
     if (!activeFolderId) return "All files";
     return folders.find((f) => f.id === activeFolderId)?.name || "Folder";
   }, [activeFolderId, folders, search]);
+
+  const newFolderModalOpen = newFolderParentId !== undefined;
+  const newFolderParentName = newFolderParentId
+    ? folders.find((f) => f.id === newFolderParentId)?.name || null
+    : null;
 
   return (
     <div className="min-h-screen flex bg-canvas">
@@ -94,7 +129,8 @@ export default function Dashboard() {
           setActiveFolderId(id);
           setSidebarOpen(false);
         }}
-        onNewFolder={() => setNewFolderOpen(true)}
+        onNewFolder={(parentId) => setNewFolderParentId(parentId || null)}
+        onRenameFolder={handleRenameFolder}
         totalFiles={totalFiles}
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
@@ -108,6 +144,29 @@ export default function Dashboard() {
           onMenuClick={() => setSidebarOpen(true)}
           folderName={folderName}
         />
+
+        {!search && breadcrumb.length > 0 && (
+          <div className="px-4 sm:px-8 pt-4 flex items-center gap-1.5 text-sm flex-wrap">
+            <button onClick={() => setActiveFolderId(null)} className="text-muted hover:text-ink">
+              All files
+            </button>
+            {breadcrumb.map((folder, i) => (
+              <React.Fragment key={folder.id}>
+                <span className="text-slate-300">/</span>
+                <button
+                  onClick={() => setActiveFolderId(folder.id)}
+                  className={
+                    i === breadcrumb.length - 1
+                      ? "text-ink font-medium"
+                      : "text-muted hover:text-ink"
+                  }
+                >
+                  {folder.name}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
+        )}
 
         <main className="flex-1 px-4 sm:px-8 py-6">
           {loading ? (
@@ -131,7 +190,7 @@ export default function Dashboard() {
               </div>
               {!search && (
                 <button onClick={() => setUploadOpen(true)} className="btn-brass mt-2">
-                  <Inbox size={16} /> Upload a file
+                  <Inbox size={16} /> Upload files
                 </button>
               )}
             </div>
@@ -142,9 +201,11 @@ export default function Dashboard() {
                   key={file.id}
                   file={file}
                   folders={folders}
+                  onView={setPreviewFile}
                   onDownload={handleDownload}
                   onDelete={handleDelete}
                   onMove={handleMove}
+                  onRename={handleRenameFile}
                 />
               ))}
             </div>
@@ -157,12 +218,28 @@ export default function Dashboard() {
           folders={folders}
           activeFolderId={activeFolderId}
           onClose={() => setUploadOpen(false)}
-          onUpload={handleUpload}
+          onUploadFile={uploadOne}
+          onCreateFolder={handleCreateFolder}
+          onDone={refreshAfterUpload}
         />
       )}
 
-      {newFolderOpen && (
-        <NewFolderModal onClose={() => setNewFolderOpen(false)} onCreate={handleCreateFolder} />
+      {newFolderModalOpen && (
+        <NewFolderModal
+          parentId={newFolderParentId}
+          parentName={newFolderParentName}
+          onClose={() => setNewFolderParentId(undefined)}
+          onCreate={handleCreateFolder}
+        />
+      )}
+
+      {previewFile && (
+        <FilePreviewModal
+          file={previewFile}
+          onClose={() => setPreviewFile(null)}
+          onDownload={handleDownload}
+          onFetchBlob={fetchFileBlob}
+        />
       )}
     </div>
   );

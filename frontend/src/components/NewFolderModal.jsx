@@ -1,9 +1,9 @@
 import React, { useState } from "react";
-import { X } from "lucide-react";
+import { X, FolderTree } from "lucide-react";
 
 const COLORS = ["#C6952C", "#2563EB", "#16A34A", "#DC2626", "#7C3AED", "#0891B2"];
 
-export default function NewFolderModal({ onClose, onCreate }) {
+export default function NewFolderModal({ onClose, onCreate, parentId = null, parentName = null }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState(COLORS[0]);
   const [error, setError] = useState("");
@@ -18,7 +18,7 @@ export default function NewFolderModal({ onClose, onCreate }) {
     setSaving(true);
     setError("");
     try {
-      await onCreate({ name: name.trim(), color });
+      await onCreate({ name: name.trim(), color, parent_id: parentId || null });
       onClose();
     } catch (err) {
       setError(err.response?.data?.message || "Could not create folder");
@@ -36,6 +36,13 @@ export default function NewFolderModal({ onClose, onCreate }) {
 
         <h3 className="font-display text-lg font-semibold text-ink">New folder</h3>
         <p className="text-sm text-muted mt-1">Group related documents together.</p>
+
+        {parentName && (
+          <div className="mt-3 flex items-center gap-1.5 text-xs text-brass-dark bg-brass/10 rounded-lg px-3 py-2 w-fit">
+            <FolderTree size={13} />
+            Inside <span className="font-medium">{parentName}</span>
+          </div>
+        )}
 
         <div className="mt-4">
           <label className="label">Folder name</label>
