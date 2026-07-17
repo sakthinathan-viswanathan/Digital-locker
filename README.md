@@ -1,6 +1,6 @@
 # 🔐 Vaultly — Digital Locker
 
-A secure, full-stack digital locker for uploading, organizing, and retrieving personal files — built with React, Express, Firestore, and Supabase Storage.
+A secure, full-stack digital locker for uploading, organizing, and retrieving personal files — built with React, Express, Firestore, and Supabase Storage.(https://digital-vaultly.vercel.app)
 
 [![Node](https://img.shields.io/badge/node-%3E%3D18.0.0-339933?logo=node.js&logoColor=white)](https://nodejs.org/)
 [![React](https://img.shields.io/badge/react-18.3-61DAFB?logo=react&logoColor=black)](https://react.dev/)
@@ -11,6 +11,14 @@ A secure, full-stack digital locker for uploading, organizing, and retrieving pe
 [![License](https://img.shields.io/badge/license-Unlicensed-lightgrey)](#license)
 
 ---
+
+
+<img width="1919" height="992" alt="image" src="https://github.com/user-attachments/assets/692d2036-61fa-4bec-ba0e-1b95f0b41f1c" />
+<img width="1918" height="996" alt="image" src="https://github.com/user-attachments/assets/95d7ee50-c756-4c02-bba4-9d189840c9ae" />
+<img width="1919" height="996" alt="image" src="https://github.com/user-attachments/assets/f9211e2c-aa34-49db-bedc-a36a75dc6169" />
+<img width="1919" height="994" alt="image" src="https://github.com/user-attachments/assets/77b58e3d-9c22-4eb4-a2b5-1a70b98a9567" />
+
+
 
 ## Table of Contents
 
@@ -55,17 +63,17 @@ Vaultly is a digital locker application that lets users register an account, org
 ## Architecture
 
 ```
-┌──────────────┐        HTTPS/JSON        ┌──────────────────┐
-│   Frontend    │ ───────────────────────▶ │     Backend       │
-│  React + Vite │ ◀─────────────────────── │  Express + JWT    │
-└──────────────┘                           └─────────┬─────────┘
+┌──────────────┐        HTTPS/JSON         ┌──────────────────┐
+│   Frontend   │ ───────────────────────▶ |     Backend       │
+│ React + Vite │ ◀─────────────────────── │  Express + JWT    │
+└──────────────┘                           └─────────┬────────┘
                                                        │
                                      ┌─────────────────┼─────────────────┐
                                      ▼                                   ▼
                           ┌────────────────────┐              ┌───────────────────┐
-                          │      Firestore       │              │  Supabase Storage   │
-                          │ users / folders /     │              │  locker-files       │
-                          │ file metadata          │              │  (private bucket)   │
+                          │      Firestore     │              │  Supabase Storage │
+                          │ users / folders /  │              │  locker-files     │
+                          │ file metadata      │              │  (private bucket) │
                           └────────────────────┘              └───────────────────┘
 ```
 
@@ -112,41 +120,7 @@ Vaultly is a digital locker application that lets users register an account, org
 - **Vercel** — frontend hosting
 - **Render** — backend hosting
 
-## Project Structure
 
-```
-digital-locker/
-├── backend/
-│   ├── config/
-│   │   ├── firebase.js       # Firestore admin init
-│   │   ├── supabase.js       # Supabase client init
-│   │   └── mailer.js         # SMTP / nodemailer setup
-│   ├── controllers/
-│   │   ├── auth.controller.js
-│   │   ├── folder.controller.js
-│   │   └── file.controller.js
-│   ├── middleware/
-│   │   └── auth.js           # requireAuth JWT guard
-│   ├── routes/
-│   │   ├── auth.routes.js
-│   │   ├── folder.routes.js
-│   │   └── file.routes.js
-│   ├── .env.example
-│   ├── package.json
-│   └── server.js
-└── frontend/
-    ├── src/
-    │   ├── api/axios.js       # pre-configured axios instance
-    │   ├── components/        # FileCard, Sidebar, Topbar, modals, etc.
-    │   ├── context/AuthContext.jsx
-    │   ├── pages/              # Login, Register, Dashboard, password reset
-    │   ├── utils/format.js
-    │   ├── App.jsx
-    │   └── main.jsx
-    ├── .env.example
-    ├── package.json
-    └── vite.config.js
-```
 
 ## Prerequisites
 
@@ -160,8 +134,8 @@ digital-locker/
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/<you>/vaultly-digital-locker.git
-cd vaultly-digital-locker/digital-locker
+git clone https://github.com/sakthinathan-viswanathan/Digital-locker.git
+cd Digital-locker
 ```
 
 ### 2. Set up Firestore
